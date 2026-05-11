@@ -1,0 +1,48 @@
+name: Atualizar historico_risco.csv
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-historico-risco
+  cancel-in-progress: true
+
+jobs:
+  atualizar-historico:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Regerar historico local
+        run: python gerar_historico_local.py
+
+      - name: Commitar atualizacao se houver mudanca
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- historico_risco.csv; then
+            echo "Sem mudancas no historico_risco.csv"
+            exit 0
+          fi
+
+          git add historico_risco.csv
+          git commit -m "Atualiza historico_risco.csv [skip ci]"
+          git push
