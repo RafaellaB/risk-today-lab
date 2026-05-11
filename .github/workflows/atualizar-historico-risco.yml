@@ -3,7 +3,7 @@ name: Atualizar historico_risco.csv
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/6 * * * *'
 
 permissions:
   contents: write
