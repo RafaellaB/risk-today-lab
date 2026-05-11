@@ -25,6 +25,15 @@ traducoes = {
         "titulo_pagina": "Risco Hoje - Laboratório",
         "btn_atualizar": "Atualizar Dados",
         "btn_historico": "Ver Histórico",
+        "titulo_diagrama": "Diagrama de Risco",
+        "texto_hist_local": "Histórico local",
+        "texto_hist_vazio": "Ainda não há histórico local salvo.",
+        "texto_versao": "Versão 0.2 a partir de {data} às 00:00:00",
+        "texto_intervalo": "Selecionar intervalo",
+        "texto_estacao": "Selecionar estação (opcional)",
+        "texto_tabela": "Dados (tabela)",
+        "texto_sidebar_hist": "Use o histórico local para ver o acumulado deste laboratório.",
+        "formato_data_diagrama": "%d/%m/%Y",
         "msg_aguardando": "Aguardando dados de hoje",
         "msg_erro": "Erro ao processar. Tente atualizar.",
         "header_grafico": "Diagrama de Risco",
@@ -36,9 +45,18 @@ traducoes = {
         "sigla_mare": "AM"
     },
     "English": {
-        "titulo_pagina": "Risco Hoje - Laboratório",
+        "titulo_pagina": "Risk Today - Laboratory",
         "btn_atualizar": "Update Data",
         "btn_historico": "View History",
+        "titulo_diagrama": "Risk Diagram",
+        "texto_hist_local": "Local history",
+        "texto_hist_vazio": "No local history has been saved yet.",
+        "texto_versao": "Version 0.2 starting from {data} at 00:00:00",
+        "texto_intervalo": "Select interval",
+        "texto_estacao": "Select station (optional)",
+        "texto_tabela": "Data (table)",
+        "texto_sidebar_hist": "Use local history to see this lab's accumulated data.",
+        "formato_data_diagrama": "%Y-%m-%d",
         "msg_aguardando": "Waiting for today's data",
         "msg_erro": "Processing error. Please try updating.",
         "header_grafico": "Risk Diagram",
@@ -128,9 +146,9 @@ def gerar_diagramas(df_analisado, idioma, key_prefix=""):
         if pd.isna(data_dt):
             data_formatada = str(data)
         else:
-            data_formatada = data_dt.strftime('%d/%m/%Y') if idioma == 'Português' else data_dt.strftime('%Y-%m-%d')
+            data_formatada = data_dt.strftime(t['formato_data_diagrama'])
 
-        st.subheader(f"{t['header_grafico']}: {estacao} - {data_formatada}")
+        st.subheader(f"{t['titulo_diagrama']}: {estacao} - {data_formatada}")
         fig = go.Figure()
         
         lim_x = max(110, grupo['VP'].max() * 1.2 if not grupo.empty else 110)
@@ -193,7 +211,7 @@ def salvar_historico_local(df_novo):
 
 # BLOCO PRINCIPAL
 if __name__ == "__main__":
-    st.set_page_config(page_title="Risco Hoje - Laboratório", layout="wide")
+    st.set_page_config(page_title="Risco Hoje - Laboratório / Risk Today - Laboratory", layout="wide")
     fuso = pytz.timezone('America/Recife') 
     data_hoje_str = datetime.now(fuso).strftime('%Y-%m-%d')
 
@@ -213,7 +231,7 @@ if __name__ == "__main__":
     st.sidebar.markdown("---")
 
     # 2. Histórico local dentro do próprio Streamlit
-    st.sidebar.caption("Use o histórico local para ver o acumulado deste laboratório.")
+    st.sidebar.caption(t['texto_sidebar_hist'])
 
     # --- CONTEÚDO PRINCIPAL ---
     st.title(t['titulo_pagina'])
@@ -248,12 +266,12 @@ if __name__ == "__main__":
             # Salvar o resultado do dia no histórico local
             df_hist_local = salvar_historico_local(df_final)
 
-        st.subheader("Histórico local")
+        st.subheader(t['texto_hist_local'])
 
         if df_hist_local.empty:
-            st.info("Ainda não há histórico local salvo.")
+            st.info(t['texto_hist_vazio'])
         else:
-            st.caption(f"Versão 0.2 a partir de {DATA_INICIO_LOCAL_FMT} às 00:00:00")
+            st.caption(t['texto_versao'].format(data=DATA_INICIO_LOCAL_FMT))
 
             # Filtros para o histórico
             col1, col2 = st.columns(2)
@@ -262,7 +280,7 @@ if __name__ == "__main__":
                 data_min = pd.to_datetime(datas_disponiveis[0]).date()
                 data_max = pd.to_datetime(datas_disponiveis[-1]).date()
                 intervalo_datas = st.date_input(
-                    "Selecionar intervalo",
+                    t['texto_intervalo'],
                     value=(data_max, data_max),
                     min_value=data_min,
                     max_value=data_max,
@@ -277,7 +295,7 @@ if __name__ == "__main__":
             with col2:
                 estacoes_disponiveis = sorted(df_hist_local['nomeEstacao'].unique())
                 estacoes_selecionadas = st.multiselect(
-                    "Selecionar estação (opcional)",
+                    t['texto_estacao'],
                     options=estacoes_disponiveis,
                     default=estacoes_disponiveis
                 )
@@ -290,7 +308,7 @@ if __name__ == "__main__":
                 df_filtrado = df_filtrado[df_filtrado['nomeEstacao'].isin(estacoes_selecionadas)]
 
             if not df_filtrado.empty:
-                with st.expander("Dados (tabela)", expanded=False):
+                with st.expander(t['texto_tabela'], expanded=False):
                     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
                 gerar_diagramas(df_filtrado, idioma_sel, key_prefix="hist_")
             else:
