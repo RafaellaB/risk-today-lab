@@ -18,6 +18,10 @@ st.set_page_config(
     page_icon="💧",
 )
 
+# --- INICIALIZAÇÃO DE ESTADO ---
+if "bairro_selecionado" not in st.session_state:
+    st.session_state["bairro_selecionado"] = None
+
 # -----------------------------
 # 1. CONSTANTES E CONFIGURAÇÕES
 # -----------------------------
@@ -77,8 +81,8 @@ TRADUCOES = {
         "alerta_normal": "Situação normal em {}. Os indicadores atuais não sugerem risco elevado.",
         "titulo_diagrama": "Diagrama de Risco (Evolução)",
         "sem_dados_diagrama": "Ainda não há dados consolidados de hoje para formar o diagrama.",
-        "base_metodo": "Base Científica e Metodologia",
-        "base_desc": "Os dados de chuva são integrados em tempo real do **CEMADEN**. A altura da maré utiliza a tábua de previsão astronômica da **Marinha do Brasil**. O risco reflete o cálculo de interseção entre a precipitação móvel (VP) e o piso da maré (AM_calc).",
+        "base_metodo": "Como interpretar o Risco",
+        "base_desc": "Os dados de chuva são integrados em tempo real do **CEMADEN**. A altura da maré utiliza a previsão astronômica da **Marinha do Brasil**. O risco é definido pela combinação desses dois fatores: 🟢 **Baixo** (seguro), 🟡 **Moderado a Moderado-Alto** (atenção ao sistema de drenagem) e 🔴 **Alto** (risco crítico para alagamentos).",
         "popup_risco": "Risco Atual",
         "em_breve_hist": "Em breve esta área exibirá séries temporais consolidadas e histórico de eventos para Recife.",
         "em_breve_pub": "Em breve esta área exibirá referências técnicas e publicações científicas relacionadas ao projeto Risco Hoje.",
@@ -86,6 +90,7 @@ TRADUCOES = {
         "eixo_y": "Maré (m)",
         "hora": "Hora",
         "risco": "Risco",
+        "botao_hist": "Clique aqui para acessar o histórico dos diagramas desde 2025",
     },
     "English": {
         "config": "Settings",
@@ -120,8 +125,8 @@ TRADUCOES = {
         "alerta_normal": "Normal situation in {}. Current indicators do not suggest high risk.",
         "titulo_diagrama": "Risk Diagram (Evolution)",
         "sem_dados_diagrama": "There are no consolidated data for today to form the diagram yet.",
-        "base_metodo": "Scientific Base and Methodology",
-        "base_desc": "Rain data is integrated in real-time from **CEMADEN**. The tide height uses the astronomical prediction table from the **Brazilian Navy**. Risk reflects the intersection calculation between moving precipitation (VP) and tide floor (AM_calc).",
+        "base_metodo": "Risk Interpretation Guide",
+        "base_desc": "Rainfall data is integrated in real-time from **CEMADEN**. Tide height uses the **Brazilian Navy**'s astronomical prediction. Risk is defined by the combination of these two factors: 🟢 **Low** (safe), 🟡 **Moderate to Moderate-High** (monitor drainage), and 🔴 **High** (critical risk of flooding).",
         "popup_risco": "Current Risk",
         "em_breve_hist": "This area will soon display consolidated time series and event history for Recife.",
         "em_breve_pub": "This area will soon display technical references and scientific publications related to the Risk Today project.",
@@ -129,6 +134,7 @@ TRADUCOES = {
         "eixo_y": "Tide (m)",
         "hora": "Time",
         "risco": "Risk",
+        "botao_hist": "Click here to access the diagram history since 2025",
     }
 }
 
@@ -681,7 +687,7 @@ with tab_mapa:
                     key=lambda k: (COORDENADAS_ESTACOES[k][0] - lat_click)**2 + (COORDENADAS_ESTACOES[k][1] - lon_click)**2
                 )
                 
-                if estacao_clicada != st.session_state["bairro_selecionado"]:
+                if estacao_clicada != st.session_state.get("bairro_selecionado"):
                     st.session_state["bairro_selecionado"] = estacao_clicada
                     st.rerun()
 
@@ -689,7 +695,12 @@ with tab_mapa:
 # ABAS SECUNDÁRIAS 
 # -----------------------------
 with tab_hist:
-    st.info(t['em_breve_hist'])
+    
+    st.link_button(
+        label=t["botao_hist"], 
+        url="https://painel-diagrama-de-risco-f5n2bwurkppdppawqhqkmz.streamlit.app/",
+        type="primary"
+    )
 
 with tab_pub:
     if idioma_sel == "Português":
@@ -707,7 +718,7 @@ with tab_pub:
         st.markdown(
             "[**Painel Interativo de Monitoramento de Risco de Alagamentos para a Cidade do Recife**](https://arandu.ufrpe.br/items/08489bec-0f03-4071-a0ef-563ae8ea54b8)"
         )
-        st.markdown("🔹 *Desenvolvimento de plataforma web analítica que integra dados meteorológicos e maregráficos em tempo real para suporte a decisões.*")
+        st.markdown("🔹 *Desenvolvimento de plataforma web que integra dados meteorológicos e maregráficos em tempo real para suporte a decisões.*")
         st.markdown("Autor: Rafaella Moura")
     
     else:
