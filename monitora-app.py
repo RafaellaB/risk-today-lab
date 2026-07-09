@@ -329,25 +329,43 @@ def buscar_umidade_openmeteo(lat, lon):
     except Exception: pass
     return None
 
-def extrair_umidade_hora_atual(dados_json, hora_atual_str):
-    if not dados_json or "hourly" not in dados_json: return 0.0, 0.0, 0.0, 0.0
+def extrair_umidade_hora_atual(dados_json, datahora_alvo):
+    """
+    Usa o Pandas para indexar o tempo corretamente, evitando quebras 
+    causadas por strings de fusos horários diferentes no servidor.
+    """
+    if not dados_json or "hourly" not in dados_json: 
+        return 0.0, 0.0, 0.0, 0.0
     try:
-        tempos = dados_json["hourly"]["time"]
-        indice = tempos.index(hora_atual_str)
-        sup = dados_json["hourly"]["soil_moisture_0_to_1cm"][indice]
-        trans = dados_json["hourly"]["soil_moisture_1_to_3cm"][indice]
-        inter = dados_json["hourly"]["soil_moisture_3_to_9cm"][indice]
-        prof = dados_json["hourly"]["soil_moisture_27_to_81cm"][indice]
+        # Cria um DataFrame temporário com os dados da API
+        df_umidade = pd.DataFrame(dados_json["hourly"])
+        # Converte a coluna de tempo da API para Datetime (remover o fuso para comparação limpa)
+        df_umidade['time'] = pd.to_datetime(df_umidade['time'])
+        
+        # Remove a informação de fuso do nosso alvo para bater com o formato da API
+        alvo_naive = datahora_alvo.replace(tzinfo=None)
+        
+        # Encontra a linha com o horário mais próximo do atual (geralmente a hora cheia)
+        df_umidade['diferenca'] = (df_umidade['time'] - alvo_naive).abs()
+        registro_atual = df_umidade.sort_values(by='diferenca').iloc[0]
+        
+        sup = float(registro_atual["soil_moisture_0_to_1cm"])
+        trans = float(registro_atual["soil_moisture_1_to_3cm"])
+        inter = float(registro_atual["soil_moisture_3_to_9cm"])
+        prof = float(registro_atual["soil_moisture_27_to_81cm"])
+        
         return sup, trans, inter, prof
-    except (ValueError, IndexError, KeyError):
+    except Exception as e:
+        # Se mesmo assim falhar, tenta pegar o primeiro registro disponível em vez de zerar tudo
         try:
             return (
-                dados_json["hourly"]["soil_moisture_0_to_1cm"][0],
-                dados_json["hourly"]["soil_moisture_1_to_3cm"][0],
-                dados_json["hourly"]["soil_moisture_3_to_9cm"][0],
-                dados_json["hourly"]["soil_moisture_27_to_81cm"][0]
+                float(dados_json["hourly"]["soil_moisture_0_to_1cm"][0]),
+                float(dados_json["hourly"]["soil_moisture_1_to_3cm"][0]),
+                float(dados_json["hourly"]["soil_moisture_3_to_9cm"][0]),
+                float(dados_json["hourly"]["soil_moisture_27_to_81cm"][0])
             )
-        except Exception: return 0.0, 0.0, 0.0, 0.0
+        except Exception: 
+            return 0.0, 0.0, 0.0, 0.0
 
 @st.cache_data(show_spinner=False)
 def carregar_dados_mare_cache(url_am_data):
@@ -574,8 +592,8 @@ with tab_mapa:
             coord_atual = COORDENADAS_ESTACOES.get(bairro, [-8.05, -34.90])
             dados_meteo = buscar_umidade_openmeteo(coord_atual[0], coord_atual[1])
             
-            hora_atual_iso = agora.strftime('%Y-%m-%dT%H:00')
-            sup, trans, inter, prof = extrair_umidade_hora_atual(dados_meteo, hora_atual_iso)
+            
+            sup, trans, inter, prof = extrair_umidade_hora_atual(dados_meteo, agora)
 
             u1, u2, u3, u4 = st.columns(4)
             with u1:
